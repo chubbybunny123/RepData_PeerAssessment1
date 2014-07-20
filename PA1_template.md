@@ -5,7 +5,8 @@
 First unzip the data if that has not already been done. Then 
 load the raw data as the data frame "rawDF".  
 
-```{r unzip_load}
+
+```r
 zipName <- "activity.zip"
 rawFile <- "activity.csv"
 
@@ -27,7 +28,20 @@ rawDF <- read.csv(file = rawFile, header = TRUE
                   , na.strings = "NA"
                   , colClasses = c("numeric", "character", "numeric"))
 summary(rawDF)
+```
 
+```
+##      steps           date              interval   
+##  Min.   :  0.0   Length:17568       Min.   :   0  
+##  1st Qu.:  0.0   Class :character   1st Qu.: 589  
+##  Median :  0.0   Mode  :character   Median :1178  
+##  Mean   : 37.4                      Mean   :1178  
+##  3rd Qu.: 12.0                      3rd Qu.:1766  
+##  Max.   :806.0                      Max.   :2355  
+##  NA's   :2304
+```
+
+```r
 ## skip this for now. doesn't work as a key
 ## convert the date column into a POSIXTL
 # rawDF$date <- strptime(rawDF$date, format = "%Y-%m-%d")
@@ -38,7 +52,8 @@ This is data frame has column headers steps, date, interval
 As directed, we will ignore the missing values for this section
 The total number of steps taken each day, in histogram form:
 
-``` {r calcMean}
+
+```r
 library(data.table)
 
 DT <- as.data.table(rawDF)
@@ -47,21 +62,38 @@ setkey(DT, date)
 dailySteps <-DT[,list(sumsteps=sum(steps, na.rm=TRUE))
                 ,by=date]
 head(dailySteps)
+```
 
+```
+##          date sumsteps
+## 1: 2012-10-01        0
+## 2: 2012-10-02      126
+## 3: 2012-10-03    11352
+## 4: 2012-10-04    12116
+## 5: 2012-10-05    13294
+## 6: 2012-10-06    15420
+```
+
+```r
 hist(dailySteps$sumsteps, breaks=21
      , main = "Histogram of Daily Steps"
      , xlab = "Steps")
+```
 
+![plot of chunk calcMean](figure/calcMean.png) 
+
+```r
 meanSteps <- mean(dailySteps$sumsteps, na.rm = TRUE)
 medianSteps <- median(dailySteps$sumsteps, na.rm = TRUE)
 ```
 
-The mean and median total number of steps taken per day are, respectively, `r meanSteps` and `r medianSteps`.
+The mean and median total number of steps taken per day are, respectively, 9354.2295 and 1.0395 &times; 10<sup>4</sup>.
 
 
 ## What is the average daily activity pattern?
 
-``` {r dailyPattern}
+
+```r
 avgDay <-DT[,list(avgsteps=mean(steps
                                , na.rm=TRUE))
             ,by=interval]
@@ -70,25 +102,29 @@ plot(avgsteps ~ interval, data = avgDay
      , xlab = "Time interval (min)"
      , ylab = "Steps"
      , type = "l")
+```
 
+![plot of chunk dailyPattern](figure/dailyPattern.png) 
+
+```r
 ## note this returns index of FIRST maximum
 idxMax <- which.max(avgDay$avgsteps)  
 intervalMax <- avgDay$interval[idxMax]
 stepMax <- avgDay$avgsteps[idxMax]
-
 ```
 On average, the interval with the maximum number of steps is the
-5-minute interval starting at the `r intervalMax` minute of the day.
+5-minute interval starting at the 835 minute of the day.
 
 ## Imputing missing values
 
 1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
 
-``` {r numNA}
+
+```r
 DT$isNA <- is.na(DT$steps) 
 numNAs <- sum(DT$isNA)
 ```
-There are `r numNAs` rows with NA in the steps column.
+There are 2304 rows with NA in the steps column.
 
 2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
 
@@ -102,8 +138,8 @@ average value.*
 *Let's add this as a new column in the data table, with name 
 "newSteps".*
 
-``` {r fillNAs ,cache=TRUE}
 
+```r
 for(i in 1:length(DT$interval)) {
     if(DT$isNA[i]) {
         idx <- which(avgDay$interval == DT$interval[i])
@@ -113,20 +149,23 @@ for(i in 1:length(DT$interval)) {
     }
 }
 ## summary(DT) 
-
 ```
 
 4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
 
-``` {r stepswoNAs}
 
+```r
 noNASteps <-DT[,list(sumsteps=sum(newSteps, na.rm=TRUE))
                 ,by=date]
 
 hist(noNASteps$sumsteps, breaks=21
      , main = "Histogram of Daily Steps w/NA values imputted"
      , xlab = "Steps")
+```
 
+![plot of chunk stepswoNAs](figure/stepswoNAs.png) 
+
+```r
 NAmeanSteps <- mean(noNASteps$sumsteps, na.rm = TRUE)
 NAmedianSteps <- median(noNASteps$sumsteps, na.rm = TRUE)
 
@@ -135,11 +174,11 @@ diffMedians <- NAmedianSteps - medianSteps
 ```
 
 With the imputted values for the NAs, the new mean and median steps
-per day are now `r NAmeanSteps` and `r NAmedianSteps`. We lose the
+per day are now 1.0766 &times; 10<sup>4</sup> and 1.0766 &times; 10<sup>4</sup>. We lose the
 left skew (from the preponderonce of NA-turned-zeros) in the 
 original histogram, so the mean and median of the data with the 
-imputed NA values are now the same.  The imputed data's mean is `r diffMeans` 
-greater than the raw data and the median is `r diffMedians` greater.
+imputed NA values are now the same.  The imputed data's mean is 1411.9592 
+greater than the raw data and the median is 371.1887 greater.
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
@@ -147,7 +186,8 @@ greater than the raw data and the median is `r diffMedians` greater.
 as directed.*
 
 1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
-``` {r week, cache=TRUE} 
+
+```r
 rawDF$POSdate <- strptime(rawDF$date, "%Y-%m-%d")
 newDF <- cbind(rawDF, DT$newSteps)
 colnames(newDF)[5] <- "newSteps"
@@ -164,11 +204,10 @@ for(i in 1:length(newDF$interval)) {
 newDF$isweekend <- as.factor(newDF$isweekend)
 newDF <- subset(newDF, select=c(isweekend, interval, newSteps))
 newDT <- as.data.table(newDF)
-
 ```
 2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis).
-``` {r weekpanel} 
 
+```r
 ## Make the average weekday and weekend profile
 avgs <- newDT[, list(avgSteps = mean(newSteps)), by = list(isweekend, interval)]
 
@@ -179,6 +218,8 @@ xyplot(avgSteps ~ interval | isweekend, data = avgs, layout = c(1,2)
        , xlab="Interval"
        , ylab="Number of Steps")
 ```
+
+![plot of chunk weekpanel](figure/weekpanel.png) 
 The weekend and weekdays profiles look roughly equal. You might say the peak around 
 800 minutes is higher for the weekdays, but the other local maximums throughout 
 the day are higher during the weekend. 
